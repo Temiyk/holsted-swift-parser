@@ -24,10 +24,10 @@ body {
     justify-self: center;
     border: none;
     width: 100%;
-    background-color: #7fff51;
+    background-color: #62ca5f;
 }
 #sendBtn:hover {
-    background-color: #baff9e;
+    background-color: rgba(98, 202, 95, 0.7);
     transition: 0.2s;
 }
 

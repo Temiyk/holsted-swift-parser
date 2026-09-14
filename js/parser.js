@@ -27,70 +27,72 @@ sendBtn.addEventListener('click', (e) => {
     const isDigit  = c => c >= '0' && c <= '9';
     const isSpace  = c => c === ' ' || c === '\t' || c === '\n' || c === '\r';
 
-    // ---- Токенизация: синтаксис сохранён, добавлена только ветка для '"' ----
     function tokenize(src) {
         const tokens = [];
-        let buf = '';
-        let mode = '';
+        const n = src.length;
+        let i = 0;
 
-        const flush = () => {
-            if (buf) { tokens.push(buf); buf = ''; }
-            mode = '';
-        };
+        while (i < n) {
+            const c = src[i];
 
-        for (const c of src) {
-            if (mode === 'str') {
-                buf += c;
-                if (c === '"' && buf.length > 1) flush();
-                continue;
-            }
-            // ЕДИНСТВЕННОЕ ДОБАВЛЕНИЕ: '"' всегда открывает строку
             if (c === '"') {
-                flush();
-                buf = '"';
-                mode = 'str';
+                let j = i + 1;
+                while (j < n) {
+                    if (src[j] === '\\') { j += 2; continue; }
+                    if (src[j] === '"')  { j++; break; }
+                    j++;
+                }
+                tokens.push(src.slice(i, j));
+                i = j;
                 continue;
             }
-            if (isSpace(c)) { flush(); continue; }
+            if (isSpace(c)) { i++; continue; }
 
-            if (mode === 'word' && isLetter(c)) { buf += c; continue; }
-            if (mode === 'word' && isDigit(c))  { buf += c; continue; }
-            if (mode === 'num'  && (isDigit(c) || c === '.')) { buf += c; continue; }
-            if (mode === 'op'   && !isLetter(c) && !isDigit(c)) { buf += c; continue; }
+            if (isLetter(c)) {
+                let j = i + 1;
+                while (j < n && (isLetter(src[j]) || isDigit(src[j]))) j++;
+                tokens.push(src.slice(i, j));
+                i = j;
+                continue;
+            }
 
-            flush();
-            buf = c;
-            if (isLetter(c)) mode = 'word';
-            else if (isDigit(c)) mode = 'num';
-            else mode = 'op';
-        }
-        flush();
+            if (isDigit(c)) {
+                let j = i + 1;
+                while (j < n && isDigit(src[j])) j++;
+                if (j < n && src[j] === '.' && j + 1 < n && isDigit(src[j + 1])) {
+                    j++;
+                    while (j < n && isDigit(src[j])) j++;
+                }
+                tokens.push(src.slice(i, j));
+                i = j;
+                continue;
+            }
 
-        const ops = [];
-        for (let i = 0; i < tokens.length; i++) {
             let matched = null;
             for (const m of MULTI_OPS) {
-                if (tokens.slice(i, i + m.length).join('') === m) {
-                    matched = m;
-                    break;
-                }
+                if (src.startsWith(m, i)) { matched = m; break; }
             }
-            if (matched) { ops.push(matched); i += matched.length - 1; }
-            else ops.push(tokens[i]);
+            if (matched) {
+                tokens.push(matched);
+                i += matched.length;
+                continue;
+            }
+
+            tokens.push(c);
+            i++;
         }
-        return ops;
+        return tokens;
     }
 
     const rawTokens = tokenize(clean);
 
-    // ---- Разворачиваем интерполяции \( ... ) внутри строк ----
     const tokens = [];
     for (const tok of rawTokens) {
         tokens.push(tok);
         if (tok[0] === '"') {
             let i = 0;
             while (i < tok.length) {
-                if (tok[i] === '\\' && tok[i+1] === '(') {
+                if (tok[i] === '\\' && tok[i + 1] === '(') {
                     let depth = 1;
                     let j = i + 2;
                     while (j < tok.length && depth > 0) {
@@ -108,16 +110,14 @@ sendBtn.addEventListener('click', (e) => {
         }
     }
 
-    // ---- Имена функций/процедур/методов (по Холстеду — это операторы) ----
     const functionNames = new Set();
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
         if (!t || !isLetter(t[0])) continue;
-        if (tokens[i+1] === '(')  functionNames.add(t);   // вызов
-        if (tokens[i-1] === 'func') functionNames.add(t); // объявление
+        if (tokens[i + 1] === '(')   functionNames.add(t); // вызов
+        if (tokens[i - 1] === 'func') functionNames.add(t); // объявление
     }
 
-    // ---- Классификация ----
     const operators = new Map();
     const operands  = new Map();
     const add = (map, key) => map.set(key, (map.get(key) || 0) + 1);
@@ -125,24 +125,18 @@ sendBtn.addEventListener('click', (e) => {
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
         if (!t) continue;
-        const prev = tokens[i-1];
-        const next = tokens[i+1];
+        const prev = tokens[i - 1];
+        const next = tokens[i + 1];
 
-        // строковые литералы — операнды
-        if (t[0] === '"')       { add(operands, t); continue; }
-        // числовые литералы — операнды
-        if (isDigit(t[0]))      { add(operands, t); continue; }
+        if (t[0] === '"')  { add(operands, t); continue; }
+        if (isDigit(t[0])) { add(operands, t); continue; }
 
-        // идентификаторы
         if (isLetter(t[0])) {
-            // аргументные метки и имена параметров (a:, b:, separator:, num:)
             if (next === ':' &&
                 (prev === '(' || prev === ',' || prev === '_' || prev === undefined)) {
                 continue;
             }
-            // Int, String, let, var и т.д. — вообще не считаем
             if (IGNORE.includes(t)) continue;
-            // имена функций и ключевые слова — операторы
             if (functionNames.has(t) || KEYWORDS.includes(t)) add(operators, t);
             else add(operands, t);
             continue;
@@ -181,10 +175,22 @@ sendBtn.addEventListener('click', (e) => {
     }
 
     const sum = arr => arr.reduce((a, [, v]) => a + v, 0);
+
+    const eta1= operators.size, N1 = sum(L);
+    const eta2= operands.size,  N2 = sum(R);
+    const eta = eta1 + eta2;
+    const N = N1 + N2;
+    const V = Math.trunc(N * Math.log2(eta));
+
     const totalTr = document.createElement('tr');
     totalTr.innerHTML = `<td></td><td>η1 = ${operators.size}</td><td>N1 = ${sum(L)}</td>
                      <td></td><td>η2 = ${operands.size}</td><td>N2 = ${sum(R)}</td>`;
     table.appendChild(totalTr);
 
     document.querySelector('.container-result').style.display = 'block';
+
+    const additional = document.createElement('p');
+    additional.innerHTML = `Словарь программы η = ${eta}<br>Длина программы N = ${N}<br>Объём программы V = ${V}`
+    document.body.appendChild(additional);
+
 });
