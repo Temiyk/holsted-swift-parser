@@ -1,0 +1,46 @@
+* {
+    box-sizing: border-box;
+    justify-self: center;
+}
+
+.container {
+    margin-bottom: 40px;
+}
+
+h1 {
+    font-size: 20px;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    justify-self: center;
+}
+
+#code {
+    resize: none;
+}
+
+#sendBtn {
+    justify-self: center;
+    border: none;
+    width: 100%;
+    background-color: #7fff51;
+}
+#sendBtn:hover {
+    background-color: #baff9e;
+    transition: 0.2s;
+}
+
+.container-result {
+    display: none;
+}
+
+.section-result {
+    font-family: "Times New Roman", Times, serif;
+    text-align: center;
+    font-size: 12px;
+}
+
+td {
+    width: 70px;
+}

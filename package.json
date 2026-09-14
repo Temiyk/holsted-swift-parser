@@ -1,0 +1,10 @@
+{
+  "name": "holsted-swift-parser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "js/parser.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": true
+}

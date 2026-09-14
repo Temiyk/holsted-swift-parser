@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="/styles/style.css">
+    <script defer src="js/parser.js"></script>
+    <title>Holsted Parser</title>
+</head>
+<body>
+    <header>
+        <h1>Расчёт метрики Холстеда для размера программы</h1>
+    </header>
+
+    <main>
+        <section class="section-input">
+            <div class="container">
+                <label for="code">Введите код программы:</label><br>
+                <textarea required name="code" id="code" cols="60" rows="10"></textarea><br>
+                <button id="sendBtn">Расчёт</button>
+            </div>
+        </section>
+
+        <section class="section-result">
+            <div class="container container-result">
+                <table id="result" border="1">
+                    <caption id="table-result-caption">Базовые метрики Холстеда</caption>
+                    <thead>
+                    <tr>
+                        <td>j</td>
+                        <td>Оператор</td>
+                        <td>f1j</td>
+                        <td>i</td>
+                        <td>Операнд</td>
+                        <td>f2j</td>
+                    </tr>
+                    </thead>
+
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
