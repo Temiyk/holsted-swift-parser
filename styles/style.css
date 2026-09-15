@@ -22,14 +22,16 @@ body {
 }
 
 #sendBtn {
+    border: none;
+    border-radius: 2px;
     display: block;
     margin-left: auto;
     margin-top: 7px;
     width: auto;
-    padding: 5px;
-    padding-left: 10px; padding-right: 10px;
+    padding: 5px 10px 5px 10px;
     background-color: #62ca5f;
     font-size: 14px;
+    box-shadow: rgba(0, 0, 0, 0.58) 1px 1px 1px 1px;
 }
 #sendBtn:hover {
     background-color: rgba(98, 202, 95, 0.7);
