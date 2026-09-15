@@ -18,13 +18,18 @@ body {
 
 #code {
     resize: none;
+    margin-top: 10px;
 }
 
 #sendBtn {
-    justify-self: center;
-    border: none;
-    width: 100%;
+    display: block;
+    margin-left: auto;
+    margin-top: 7px;
+    width: auto;
+    padding: 5px;
+    padding-left: 10px; padding-right: 10px;
     background-color: #62ca5f;
+    font-size: 14px;
 }
 #sendBtn:hover {
     background-color: rgba(98, 202, 95, 0.7);
@@ -38,9 +43,24 @@ body {
 .section-result {
     font-family: "Times New Roman", Times, serif;
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
+}
+
+#table-result-caption {
+    font-size: 16px;
 }
 
 td {
-    width: 70px;
+    width: auto;          
+    white-space: nowrap;  
+    padding: 4px 12px;
 }
+
+@media (max-width: 800px) {
+    td:nth-child(2),
+    td:nth-child(5) {
+        white-space: normal;
+        word-break: break-word;
+    }
+}
+
