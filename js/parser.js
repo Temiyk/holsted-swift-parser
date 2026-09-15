@@ -189,8 +189,12 @@ sendBtn.addEventListener('click', (e) => {
 
     document.querySelector('.container-result').style.display = 'block';
 
-    const additional = document.createElement('p');
-    additional.innerHTML = `Словарь программы η = ${eta}<br>Длина программы N = ${N}<br>Объём программы V = ${V}`
-    document.body.appendChild(additional);
+    let additional = document.getElementById('metrics-summary');
+if (!additional) {
+    additional = document.createElement('p');
+    additional.id = 'metrics-summary';
+    document.querySelector('.container-result').appendChild(additional);
+}
+additional.innerHTML = `Словарь программы η = ${eta}<br>Длина программы N = ${N}<br>Объём программы V = ${V}`;
 
 });
