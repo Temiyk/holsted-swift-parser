@@ -61,7 +61,6 @@ sendBtn.addEventListener('click', (e) => {
                 while (j < n && isDigit(src[j])) j++;
                 
                 if (j < n && src[j] === '.' && j + 1 < n && src[j + 1] === '.') {
-                    // Не трогаем точку, это часть диапазона
                 } else if (j < n && src[j] === '.' && j + 1 < n && isDigit(src[j + 1])) {
                     j++;
                     while (j < n && isDigit(src[j])) j++;
