@@ -9,7 +9,6 @@ const KEYWORDS = ['if','switch','guard','return',
 const IGNORE = ['let','var','func','import','Foundation',
     'Int','String','Bool','Double','Float','Character','_'];
 
-// Приоритет отдан диапазонам
 const MULTI_OPS = ['...','..<','<<=','>>=','==','!=','<=','>=','&&','||',
     '+=','-=','*=','/=','%=','&=','|=','^=','<<','>>','->'];
 
@@ -20,7 +19,6 @@ sendBtn.addEventListener('click', (e) => {
         return;
     }
 
-    // Удаление комментариев до символа //
     const clean = content.split('\n')
         .map(line => line.split('//')[0])
         .join('\n');
@@ -58,16 +56,13 @@ sendBtn.addEventListener('click', (e) => {
                 continue;
             }
 
-            // ИСПРАВЛЕНО: Полностью переписан алгоритм разбора чисел во избежание конфликта с диапазонами
             if (isDigit(c)) {
                 let j = i + 1;
                 while (j < n && isDigit(src[j])) j++;
                 
-                // Если дальше идёт точка, но за ней ещё одна точка (например, 1... или 0..<) -> это диапазон! Stop.
                 if (j < n && src[j] === '.' && j + 1 < n && src[j + 1] === '.') {
                     // Не трогаем точку, это часть диапазона
                 } else if (j < n && src[j] === '.' && j + 1 < n && isDigit(src[j + 1])) {
-                    // Это обычное дробное число (например, 3.14) -> считываем дальше
                     j++;
                     while (j < n && isDigit(src[j])) j++;
                 }
@@ -202,7 +197,6 @@ sendBtn.addEventListener('click', (e) => {
         if (t === ']') continue;
         if (t === ',') continue;
 
-        // ИСПРАВЛЕНО: Прямая регистрация диапазонов как операторов
         if (t === '...' || t === '..<') {
             add(operators, t);
             continue;
