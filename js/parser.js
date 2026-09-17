@@ -3,13 +3,14 @@ const sendBtn = document.getElementById("sendBtn");
 
 let content = "";
 
-const KEYWORDS = ['if','else','switch','case','default','guard','return',
+const KEYWORDS = ['if','switch','guard','return',
     'for','in','while','repeat','continue','break','print'];
 
 const IGNORE = ['let','var','func','import','Foundation',
     'Int','String','Bool','Double','Float','Character','_'];
 
-const MULTI_OPS = ['<<=','>>=','...','..<','==','!=','<=','>=','&&','||',
+// Приоритет отдан диапазонам
+const MULTI_OPS = ['...','..<','<<=','>>=','==','!=','<=','>=','&&','||',
     '+=','-=','*=','/=','%=','&=','|=','^=','<<','>>','->'];
 
 sendBtn.addEventListener('click', (e) => {
@@ -19,6 +20,7 @@ sendBtn.addEventListener('click', (e) => {
         return;
     }
 
+    // Удаление комментариев до символа //
     const clean = content.split('\n')
         .map(line => line.split('//')[0])
         .join('\n');
@@ -56,13 +58,20 @@ sendBtn.addEventListener('click', (e) => {
                 continue;
             }
 
+            // ИСПРАВЛЕНО: Полностью переписан алгоритм разбора чисел во избежание конфликта с диапазонами
             if (isDigit(c)) {
                 let j = i + 1;
                 while (j < n && isDigit(src[j])) j++;
-                if (j < n && src[j] === '.' && j + 1 < n && isDigit(src[j + 1])) {
+                
+                // Если дальше идёт точка, но за ней ещё одна точка (например, 1... или 0..<) -> это диапазон! Stop.
+                if (j < n && src[j] === '.' && j + 1 < n && src[j + 1] === '.') {
+                    // Не трогаем точку, это часть диапазона
+                } else if (j < n && src[j] === '.' && j + 1 < n && isDigit(src[j + 1])) {
+                    // Это обычное дробное число (например, 3.14) -> считываем дальше
                     j++;
                     while (j < n && isDigit(src[j])) j++;
                 }
+                
                 tokens.push(src.slice(i, j));
                 i = j;
                 continue;
@@ -89,7 +98,7 @@ sendBtn.addEventListener('click', (e) => {
     const tokens = [];
     for (const tok of rawTokens) {
         tokens.push(tok);
-        if (tok[0] === '"') {
+        if (tok && tok[0] === '"') { 
             let i = 0;
             while (i < tok.length) {
                 if (tok[i] === '\\' && tok[i + 1] === '(') {
@@ -113,14 +122,16 @@ sendBtn.addEventListener('click', (e) => {
     const functionNames = new Set();
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
-        if (!t || !isLetter(t[0])) continue;
-        if (tokens[i + 1] === '(')   functionNames.add(t); // вызов
-        if (tokens[i - 1] === 'func') functionNames.add(t); // объявление
+        if (!t || !isLetter(t[0])) continue; 
+        if (tokens[i + 1] === '(')   functionNames.add(t); 
+        if (tokens[i - 1] === 'func') functionNames.add(t); 
     }
 
     const operators = new Map();
     const operands  = new Map();
     const add = (map, key) => map.set(key, (map.get(key) || 0) + 1);
+
+    const controlStack = [];
 
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
@@ -128,32 +139,90 @@ sendBtn.addEventListener('click', (e) => {
         const prev = tokens[i - 1];
         const next = tokens[i + 1];
 
-        if (t[0] === '"')  { add(operands, t); continue; }
-        if (isDigit(t[0])) { add(operands, t); continue; }
+        if (t[0] === '"')  { add(operands, t); continue; } 
+        if (isDigit(t[0])) { add(operands, t); continue; } 
 
-        if (isLetter(t[0])) {
+        if (isLetter(t[0])) { 
             if (next === ':' &&
                 (prev === '(' || prev === ',' || prev === '_' || prev === undefined)) {
                 continue;
             }
             if (IGNORE.includes(t)) continue;
+
+            if (t === 'if') {
+                controlStack.push('if-else');
+                add(operators, 'if-else');
+                continue;
+            }
+            if (t === 'switch') {
+                controlStack.push('switch-case-default');
+                add(operators, 'switch-case-default');
+                continue;
+            }
+            if (t === 'guard') {
+                controlStack.push('guard-else');
+                add(operators, 'guard-else');
+                continue;
+            }
+
+            if (t === 'else') {
+                const context = controlStack.filter(c => c === 'if-else' || c === 'guard-else').pop() || 'if-else';
+                add(operators, context);
+                continue;
+            }
+            if (t === 'case' || t === 'default') {
+                add(operators, 'switch-case-default');
+                continue;
+            }
+
             if (functionNames.has(t) || KEYWORDS.includes(t)) add(operators, t);
             else add(operands, t);
             continue;
         }
 
         if (t === '(') {
-            if (prev && (functionNames.has(prev) || KEYWORDS.includes(prev))) continue;
+            if (prev && (functionNames.has(prev) || KEYWORDS.includes(prev) || prev === 'if' || prev === 'switch' || prev === 'guard')) continue;
             add(operators, '( )');
             continue;
         }
         if (t === ')') continue;
-        if (t === '{') { add(operators, '{ }'); continue; }
-        if (t === '}') continue;
+        if (t === '{') { 
+            controlStack.push('{'); 
+            add(operators, '{ }'); 
+            continue; 
+        }
+        if (t === '}') {
+            if (controlStack.length > 0) {
+                if (controlStack[controlStack.length - 1] === '{') controlStack.pop();
+                if (controlStack.length > 0 && controlStack[controlStack.length - 1] !== '{') controlStack.pop();
+            }
+            continue; 
+        }
         if (t === '[') { add(operators, '[ ]'); continue; }
         if (t === ']') continue;
         if (t === ',') continue;
-        if (t === ':') continue;
+
+        // ИСПРАВЛЕНО: Прямая регистрация диапазонов как операторов
+        if (t === '...' || t === '..<') {
+            add(operators, t);
+            continue;
+        }
+
+        if (t === '?') {
+            add(operators, '? :');
+            continue;
+        }
+        if (t === ':') {
+            let isTernary = false;
+            for (let k = i - 1; k >= 0; k--) {
+                if (tokens[k] === ';') break;
+                if (tokens[k] === '?') { isTernary = true; break; }
+            }
+            if (isTernary) {
+                add(operators, '? :');
+            }
+            continue;
+        }
 
         add(operators, t);
     }
@@ -190,11 +259,11 @@ sendBtn.addEventListener('click', (e) => {
     document.querySelector('.container-result').style.display = 'block';
 
     let additional = document.getElementById('metrics-summary');
-if (!additional) {
-    additional = document.createElement('p');
-    additional.id = 'metrics-summary';
-    document.querySelector('.container-result').appendChild(additional);
-}
-additional.innerHTML = `Словарь программы η = ${eta}<br>Длина программы N = ${N}<br>Объём программы V = ${V}`;
+    if (!additional) {
+        additional = document.createElement('p');
+        additional.id = 'metrics-summary';
+        document.querySelector('.container-result').appendChild(additional);
+    }
+    additional.innerHTML = `Словарь программы η = ${eta}<br>Длина программы N = ${N}<br>Объём программы V = ${V}`;
 
 });
